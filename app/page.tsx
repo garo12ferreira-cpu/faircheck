@@ -1,17 +1,22 @@
 "use client";
 
+
 import { useState, useEffect, useRef } from "react";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+
 
 export default function FairCheckLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -28,11 +33,14 @@ export default function FairCheckLanding() {
     return () => observer.disconnect();
   }, []);
 
+
   const setRef = (id: string) => (el: HTMLElement | null) => {
     sectionRefs.current[id] = el;
   };
 
+
   const isVisible = (id: string) => visibleSections.has(id);
+
 
   const incidents = [
     {
@@ -67,6 +75,7 @@ export default function FairCheckLanding() {
     },
   ];
 
+
   const steps = [
     {
       number: "01",
@@ -91,6 +100,7 @@ export default function FairCheckLanding() {
     },
   ];
 
+
   return (
     <div
       className="min-h-screen font-sans antialiased"
@@ -100,13 +110,13 @@ export default function FairCheckLanding() {
         fontFamily: "'DM Sans', 'Helvetica Neue', Arial, sans-serif",
       }}
     >
-      {/* Google Font Import via style tag */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
-        * { font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; }
 
+        * { font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; }
         .mono { font-family: 'DM Mono', monospace; }
+
 
         .glow-blue {
           box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.15), 0 4px 16px rgba(0,0,0,0.4);
@@ -115,12 +125,14 @@ export default function FairCheckLanding() {
           box-shadow: 0 0 28px rgba(59, 130, 246, 0.6), 0 0 56px rgba(59, 130, 246, 0.25), 0 4px 24px rgba(0,0,0,0.5);
         }
 
+
         .grid-bg {
           background-image:
             linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
             linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
           background-size: 48px 48px;
         }
+
 
         .fade-in-up {
           opacity: 0;
@@ -136,6 +148,7 @@ export default function FairCheckLanding() {
         .delay-300 { transition-delay: 0.3s; }
         .delay-400 { transition-delay: 0.4s; }
 
+
         .card-hover {
           transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
@@ -145,14 +158,6 @@ export default function FairCheckLanding() {
           box-shadow: 0 8px 32px rgba(59, 130, 246, 0.12);
         }
 
-        .step-line {
-          position: absolute;
-          top: 28px;
-          left: calc(50% + 48px);
-          width: calc(100% - 96px);
-          height: 1px;
-          background: linear-gradient(90deg, rgba(59,130,246,0.4), rgba(59,130,246,0.05));
-        }
 
         .shine-text {
           background: linear-gradient(135deg, #E6EDF3 0%, #94A3B8 50%, #E6EDF3 100%);
@@ -161,6 +166,7 @@ export default function FairCheckLanding() {
           background-clip: text;
         }
 
+
         .blue-text {
           background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
           -webkit-background-clip: text;
@@ -168,12 +174,14 @@ export default function FairCheckLanding() {
           background-clip: text;
         }
 
+
         .noise-overlay {
           position: absolute;
           inset: 0;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
           pointer-events: none;
         }
+
 
         .pill-badge {
           display: inline-flex;
@@ -186,7 +194,15 @@ export default function FairCheckLanding() {
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
+
+
+        /* Clerk UserButton styling */
+        .cl-userButtonAvatarBox {
+          width: 36px !important;
+          height: 36px !important;
+        }
       `}</style>
+
 
       {/* ─── NAV BAR ─── */}
       <nav
@@ -209,27 +225,82 @@ export default function FairCheckLanding() {
             </span>
           </div>
 
-          {/* CTA */}
-          <button
-            className="px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
-            style={{
-              backgroundColor: "rgba(59,130,246,0.12)",
-              border: "1px solid rgba(59,130,246,0.35)",
-              color: "#60A5FA",
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = "rgba(59,130,246,0.2)";
-              (e.target as HTMLButtonElement).style.borderColor = "rgba(59,130,246,0.6)";
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = "rgba(59,130,246,0.12)";
-              (e.target as HTMLButtonElement).style.borderColor = "rgba(59,130,246,0.35)";
-            }}
-          >
-            Request Early Access
-          </button>
+
+          {/* Auth buttons */}
+          <div className="flex items-center gap-3">
+            {/* Show when logged OUT */}
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    color: "#8B949E",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.25)";
+                    (e.target as HTMLButtonElement).style.color = "#E6EDF3";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.12)";
+                    (e.target as HTMLButtonElement).style.color = "#8B949E";
+                  }}
+                >
+                  Sign In
+                </button>
+              </SignInButton>
+
+
+              <SignInButton mode="modal">
+                <button
+                  className="px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+                  style={{
+                    backgroundColor: "rgba(59,130,246,0.12)",
+                    border: "1px solid rgba(59,130,246,0.35)",
+                    color: "#60A5FA",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = "rgba(59,130,246,0.2)";
+                    (e.target as HTMLButtonElement).style.borderColor = "rgba(59,130,246,0.6)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = "rgba(59,130,246,0.12)";
+                    (e.target as HTMLButtonElement).style.borderColor = "rgba(59,130,246,0.35)";
+                  }}
+                >
+                  Request Early Access
+                </button>
+              </SignInButton>
+            </SignedOut>
+
+
+            {/* Show when logged IN */}
+            <SignedIn>
+              <a
+                href="/dashboard"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: "rgba(59,130,246,0.12)",
+                  border: "1px solid rgba(59,130,246,0.35)",
+                  color: "#60A5FA",
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLAnchorElement).style.backgroundColor = "rgba(59,130,246,0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLAnchorElement).style.backgroundColor = "rgba(59,130,246,0.12)";
+                }}
+              >
+                Go to Dashboard →
+              </a>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+          </div>
         </div>
       </nav>
+
 
       {/* ─── HERO ─── */}
       <section
@@ -239,7 +310,7 @@ export default function FairCheckLanding() {
       >
         <div className="noise-overlay" />
 
-        {/* Radial glow */}
+
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -247,6 +318,7 @@ export default function FairCheckLanding() {
               "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(59,130,246,0.08) 0%, transparent 70%)",
           }}
         />
+
 
         <div className="relative z-10 max-w-4xl mx-auto px-6 pt-32 pb-24">
           {/* Badge */}
@@ -269,6 +341,7 @@ export default function FairCheckLanding() {
             </span>
           </div>
 
+
           {/* Headline */}
           <h1
             className={`fade-in-up delay-100 ${isVisible("hero") ? "visible" : ""} text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6`}
@@ -278,6 +351,7 @@ export default function FairCheckLanding() {
             <br />
             <span className="blue-text">Before a Regulator Does</span>
           </h1>
+
 
           {/* Subheadline */}
           <p
@@ -289,29 +363,56 @@ export default function FairCheckLanding() {
             <span style={{ color: "#94A3B8" }}>no data scientists needed.</span>
           </p>
 
-          {/* CTA Button */}
+
+          {/* CTA */}
           <div
             className={`fade-in-up delay-300 ${isVisible("hero") ? "visible" : ""} flex flex-col items-center gap-4`}
           >
-            <button
-              className="glow-blue px-8 py-4 rounded-xl text-base font-semibold transition-all duration-300"
-              style={{
-                backgroundColor: "#3B82F6",
-                color: "#ffffff",
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor = "#2563EB";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor = "#3B82F6";
-              }}
-            >
-              Run Your First Audit Free →
-            </button>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button
+                  className="glow-blue px-8 py-4 rounded-xl text-base font-semibold transition-all duration-300"
+                  style={{ backgroundColor: "#3B82F6", color: "#ffffff" }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = "#2563EB";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = "#3B82F6";
+                  }}
+                >
+                  Run Your First Audit Free →
+                </button>
+              </SignInButton>
+            </SignedOut>
+
+
+            <SignedIn>
+              <a
+                href="/dashboard"
+                className="glow-blue px-8 py-4 rounded-xl text-base font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: "#3B82F6",
+                  color: "#ffffff",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLAnchorElement).style.backgroundColor = "#2563EB";
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLAnchorElement).style.backgroundColor = "#3B82F6";
+                }}
+              >
+                Go to Your Dashboard →
+              </a>
+            </SignedIn>
+
+
             <p className="text-sm" style={{ color: "#484F58" }}>
               No credit card. No engineers. No jargon.
             </p>
           </div>
+
 
           {/* Trust bar */}
           <div
@@ -328,7 +429,7 @@ export default function FairCheckLanding() {
           </div>
         </div>
 
-        {/* Bottom fade */}
+
         <div
           className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
           style={{
@@ -336,6 +437,7 @@ export default function FairCheckLanding() {
           }}
         />
       </section>
+
 
       {/* ─── PROBLEM SECTION ─── */}
       <section
@@ -368,9 +470,10 @@ export default function FairCheckLanding() {
           className={`fade-in-up delay-200 ${isVisible("problem") ? "visible" : ""} text-center max-w-xl mx-auto mb-14`}
           style={{ color: "#6E7681" }}
         >
-          These aren't hypotheticals. They're cautionary tales from companies
-          that didn't catch bias before the regulators did.
+          These aren&apos;t hypotheticals. They&apos;re cautionary tales from companies
+          that didn&apos;t catch bias before the regulators did.
         </p>
+
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {incidents.map((incident, i) => (
@@ -400,6 +503,7 @@ export default function FairCheckLanding() {
                 </span>
               </div>
 
+
               <div>
                 <p className="text-xs font-semibold mb-1" style={{ color: "#6E7681" }}>
                   {incident.company}
@@ -412,6 +516,7 @@ export default function FairCheckLanding() {
                 </p>
               </div>
 
+
               <div className="mt-auto pt-2">
                 <span className={`pill-badge text-xs ${incident.tagColor}`}>
                   {incident.tag}
@@ -421,6 +526,7 @@ export default function FairCheckLanding() {
           ))}
         </div>
       </section>
+
 
       {/* ─── HOW IT WORKS ─── */}
       <section
@@ -462,13 +568,13 @@ export default function FairCheckLanding() {
             matters: keeping your company compliant.
           </p>
 
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             {steps.map((step, i) => (
               <div
                 key={step.number}
                 className={`fade-in-up delay-${(i + 1) * 100} ${isVisible("how") ? "visible" : ""} relative`}
               >
-                {/* Connector line (desktop only) */}
                 {i < steps.length - 1 && (
                   <div
                     className="hidden md:block absolute top-7 left-full w-full h-px z-0"
@@ -481,6 +587,7 @@ export default function FairCheckLanding() {
                   />
                 )}
 
+
                 <div
                   className="card-hover rounded-2xl p-8 h-full flex flex-col gap-5 relative z-10"
                   style={{
@@ -488,7 +595,6 @@ export default function FairCheckLanding() {
                     border: "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
-                  {/* Step number + icon */}
                   <div className="flex items-center gap-4">
                     <div
                       className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
@@ -508,6 +614,7 @@ export default function FairCheckLanding() {
                     </span>
                   </div>
 
+
                   <div>
                     <h3
                       className="text-xl font-bold mb-3"
@@ -526,6 +633,7 @@ export default function FairCheckLanding() {
         </div>
       </section>
 
+
       {/* ─── WHO IT HELPS ─── */}
       <section
         id="who"
@@ -543,7 +651,7 @@ export default function FairCheckLanding() {
               color: "#10B981",
             }}
           >
-            👤 Who It's For
+            👤 Who It&apos;s For
           </span>
         </div>
         <h2
@@ -558,9 +666,10 @@ export default function FairCheckLanding() {
           className={`fade-in-up delay-200 ${isVisible("who") ? "visible" : ""} text-center max-w-lg mx-auto mb-14`}
           style={{ color: "#6E7681" }}
         >
-          You're accountable if your AI discriminates — but you shouldn't need a
-          PhD to prove it doesn't.
+          You&apos;re accountable if your AI discriminates — but you shouldn&apos;t need a
+          PhD to prove it doesn&apos;t.
         </p>
+
 
         <div className="max-w-2xl mx-auto">
           <div
@@ -573,7 +682,6 @@ export default function FairCheckLanding() {
             }}
           >
             <div className="flex flex-col sm:flex-row gap-6 items-start">
-              {/* Avatar */}
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
                 style={{
@@ -584,6 +692,7 @@ export default function FairCheckLanding() {
               >
                 ⚖️
               </div>
+
 
               <div className="flex-1">
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -609,19 +718,21 @@ export default function FairCheckLanding() {
                   </span>
                 </div>
 
+
                 <p className="text-sm font-medium mb-1" style={{ color: "#6E7681" }}>
                   Early-stage B2B startup · AI in hiring, lending, or customer service
                 </p>
+
 
                 <blockquote
                   className="mt-4 text-base leading-relaxed italic"
                   style={{ color: "#C9D1D9" }}
                 >
-                  "I'm responsible if our AI discriminates — but I can't read a
-                  Python notebook. I need something I can show to legal."
+                  &ldquo;I&apos;m responsible if our AI discriminates — but I can&apos;t read a
+                  Python notebook. I need something I can show to legal.&rdquo;
                 </blockquote>
 
-                {/* Pain points */}
+
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     "No in-house data scientists",
@@ -642,7 +753,7 @@ export default function FairCheckLanding() {
               </div>
             </div>
 
-            {/* CTA inside card */}
+
             <div
               className="mt-8 pt-6 flex flex-col sm:flex-row items-center gap-4 justify-between"
               style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
@@ -650,22 +761,51 @@ export default function FairCheckLanding() {
               <p className="text-sm" style={{ color: "#6E7681" }}>
                 This is exactly who FairCheck was built for.
               </p>
-              <button
-                className="glow-blue px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap"
-                style={{ backgroundColor: "#3B82F6", color: "#ffffff" }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = "#2563EB";
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = "#3B82F6";
-                }}
-              >
-                Run Your First Audit Free →
-              </button>
+
+
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button
+                    className="glow-blue px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap"
+                    style={{ backgroundColor: "#3B82F6", color: "#ffffff" }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = "#2563EB";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = "#3B82F6";
+                    }}
+                  >
+                    Run Your First Audit Free →
+                  </button>
+                </SignInButton>
+              </SignedOut>
+
+
+              <SignedIn>
+                <a
+                  href="/dashboard"
+                  className="glow-blue px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap"
+                  style={{
+                    backgroundColor: "#3B82F6",
+                    color: "#ffffff",
+                    textDecoration: "none",
+                    display: "inline-block",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLAnchorElement).style.backgroundColor = "#2563EB";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLAnchorElement).style.backgroundColor = "#3B82F6";
+                  }}
+                >
+                  Go to Your Dashboard →
+                </a>
+              </SignedIn>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* ─── FOOTER ─── */}
       <footer
@@ -673,7 +813,6 @@ export default function FairCheckLanding() {
         style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-4 text-center">
-          {/* Logo */}
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">🛡️</span>
             <span className="text-lg font-bold" style={{ color: "#E6EDF3" }}>
@@ -681,12 +820,14 @@ export default function FairCheckLanding() {
             </span>
           </div>
 
+
           <p className="text-sm font-medium" style={{ color: "#6E7681" }}>
-          
+            Built by Gabriel Ferreira
           </p>
           <p className="text-xs" style={{ color: "#484F58" }}>
             FairCheck — AI Bias Auditing for Teams Without Data Scientists
           </p>
+
 
           <div className="flex items-center gap-6 mt-2">
             {["Privacy", "Terms", "Contact"].map((link) => (
@@ -711,4 +852,7 @@ export default function FairCheckLanding() {
     </div>
   );
 }
+
+
+
 
