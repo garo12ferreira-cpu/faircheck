@@ -2,7 +2,8 @@
 
 
 import { useState, useEffect, useRef } from "react";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton, useAuth } from "@clerk/nextjs";
+
 
 
 export default function FairCheckLanding() {
