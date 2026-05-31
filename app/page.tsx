@@ -267,7 +267,7 @@ export default function FairCheckLanding() {
                 >
                   Go to Dashboard →
                 </a>
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </>
             )}
           </div>
