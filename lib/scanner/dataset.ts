@@ -355,7 +355,7 @@ export function datasetFindings(p: DatasetProfile): RawFinding[] {
           explanation: `${small.map((g) => `"${g.group}" has ${g.count.toLocaleString()} rows (${pct(g.share)})`).join("; ")}. A model trained on this will be least accurate for exactly these people, and you can't reliably measure fairness for them.`,
           suggestion:
             "Collect more data for these groups, or reweight/resample during training. Report per-group accuracy, not just the overall number.",
-          snippet: real.map((g) => `${g.group}: ${pct(g.share)}`).join(" · "),
+          snippet: real.map((g) => `${g.group}: ${pct(g.share)}`).join(", "),
         });
       }
       const top = real.reduce((a, b) => (a.share > b.share ? a : b));
@@ -368,7 +368,7 @@ export function datasetFindings(p: DatasetProfile): RawFinding[] {
           explanation:
             "One group dominates the data, so the model mostly learns patterns that fit them. This is how face recognition ended up far less accurate for darker-skinned women.",
           suggestion: "Compare against the real population the system will serve, and rebalance or collect more data if it doesn't match.",
-          snippet: real.map((g) => `${g.group}: ${pct(g.share)}`).join(" · "),
+          snippet: real.map((g) => `${g.group}: ${pct(g.share)}`).join(", "),
         });
       }
     }
@@ -391,7 +391,7 @@ export function datasetFindings(p: DatasetProfile): RawFinding[] {
           } A model trained on these labels will learn to repeat the gap.`,
           suggestion:
             "Find out why: is the gap explained by a legitimate, job- or risk-related factor? If not, fix the labels or use fairness-aware training (reweighing, threshold adjustment per Fairlearn / AIF360), then re-measure.",
-          snippet: rated.map((g) => `${g.group}: ${pct(g.positiveRate!)}`).join(" · "),
+          snippet: rated.map((g) => `${g.group}: ${pct(g.positiveRate!)}`).join(", "),
         });
       }
     }
