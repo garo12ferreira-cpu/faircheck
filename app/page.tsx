@@ -3,242 +3,233 @@ import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
 import { Logo } from "@/components/Logo";
 
+type Line = { n: number; code: string; note?: { sev: "High" | "Medium"; title: string; body: string } };
+
+const HERO_LINES: Line[] = [
+  { n: 24, code: "export function screenCandidate(c: Candidate) {" },
+  { n: 25, code: "  let score = c.yearsExperience * 10;" },
+  { n: 26, code: "" },
+  {
+    n: 27,
+    code: "  if (c.age > 45) score -= 20;",
+    note: { sev: "High", title: "Lowers the score for older candidates", body: "That's age discrimination in hiring. Score on skills and experience instead." },
+  },
+  {
+    n: 28,
+    code: '  if (c.gender === "female") score -= 5;',
+    note: { sev: "High", title: "Treats women differently", body: "Remove gender from the decision. Keep it only to audit results." },
+  },
+  {
+    n: 29,
+    code: "  if (badZips.has(c.zip)) score -= 15;",
+    note: { sev: "Medium", title: "ZIP code can stand in for race", body: "Proxies like this recreate redlining. Drop it or show it's job-related." },
+  },
+  { n: 30, code: "" },
+  { n: 31, code: "  return score;" },
+  { n: 32, code: "}" },
+];
+
 const CHECKS = [
   {
-    icon: "</>",
-    title: "Code",
-    body: "Decisions that branch on gender, race, age or disability. Proxies like ZIP codes. ML pipelines trained on protected traits. Name validation that rejects José and O'Brien.",
-    tags: ["TypeScript", "Python", "SQL", "Java", "Go", "+ more"],
+    name: "Code",
+    body: "Decisions that change because of someone's gender, race, age or disability. Stand-ins for those traits, like ZIP codes. Models trained on protected columns. Validation that rejects real names.",
+    examples: ["if (age > 45)", "isMale: boolean", "/^[A-Za-z]+$/"],
   },
   {
-    icon: "Aa",
-    title: "UI text & names",
-    body: "Forms with only two genders, required surnames, Mr/Mrs-only titles. Wording like whitelist, master/slave, sanity check or “the user… he” in copy, docs and identifiers.",
-    tags: ["Forms", "Copy", "Docs", "Comments"],
+    name: "Interface text and names",
+    body: "Forms that offer only two genders or require a surname. Wording that leaves people out, in your copy, docs, comments and variable names.",
+    examples: ["Mr / Mrs / Ms", "whitelist", "the user… he"],
   },
   {
-    icon: "▦",
-    title: "Datasets",
-    body: "Groups that are barely represented, outcome gaps that fail the four-fifths rule, missing demographic data and proxy columns, before you train on them.",
-    tags: ["CSV", "Training data", "Labels"],
+    name: "Datasets",
+    body: "Groups that barely appear in your data, outcomes that differ between groups by more than the four-fifths rule allows, and columns that act as proxies. The file is read in your browser; only totals are sent.",
+    examples: ["hired rate by gender", "age bands", "zip_code"],
   },
 ];
 
-const INCIDENTS = [
+const CASES = [
   {
-    who: "Amazon · 2018",
-    what: "A recruiting model learned to downgrade CVs containing the word “women's”. It was a training-data problem, and it was scrapped.",
-    rule: "ML training features",
+    year: "2018",
+    who: "Amazon",
+    what: "A recruiting model learned to mark down CVs that contained the word “women's”. The company scrapped it.",
+    check: "Models trained on protected traits",
   },
   {
-    who: "Apple Card · 2019",
-    what: "Women reported far lower credit limits than their husbands with similar finances, which triggered a New York State investigation.",
-    rule: "Outcome disparity",
+    year: "2019",
+    who: "Apple Card",
+    what: "Women reported much lower credit limits than their husbands with similar finances, prompting a New York State investigation.",
+    check: "Outcome gaps between groups",
   },
   {
-    who: "Healthcare algorithm · 2019",
-    what: "A risk score used past spending as a proxy for medical need and under-referred Black patients for extra care (Science, 2019).",
-    rule: "Proxy variable",
+    year: "2019",
+    who: "US hospitals",
+    what: "A widely used risk score treated past healthcare spending as a sign of need, and referred fewer Black patients for extra care.",
+    check: "Proxy variables",
   },
 ];
 
-const STEPS = [
-  { n: "01", title: "Paste or drop it in", body: "A file, a function, a form, a CSV. No setup, no SDK, no data-science background." },
-  { n: "02", title: "Rules + AI review", body: "Fast pattern checks catch the known traps. An AI reviewer then reads for context, adds what rules miss and clears false alarms." },
-  { n: "03", title: "Fix it line by line", body: "Every finding points to the exact line, explains the harm in plain English and gives you the fix. Export it as Markdown for your PR." },
-];
-
-function CodePreview() {
-  const lines: { n: number; code: string; hit?: "high" | "medium" | "low" }[] = [
-    { n: 27, code: "let score = c.yearsExperience * 10;" },
-    { n: 28, code: "" },
-    { n: 29, code: "if (c.age > 45) score -= 20;", hit: "high" },
-    { n: 30, code: 'if (c.gender === "female") score -= 5;', hit: "high" },
-    { n: 31, code: "if (BLACKLISTED_ZIPS.includes(c.zip)) score -= 15;", hit: "high" },
-    { n: 32, code: "" },
-    { n: 33, code: "return score;" },
-  ];
+function ReviewedCode() {
   return (
-    <div className="card overflow-hidden text-left shadow-2xl" style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.15)" }}>
-      <div className="flex items-center gap-2 px-4 py-2.5 text-xs" style={{ borderBottom: "1px solid var(--border)", color: "var(--text-3)" }}>
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#3a3f47" }} />
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#3a3f47" }} />
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#3a3f47" }} />
-        <span className="mono ml-2">candidate-screening.ts</span>
-      </div>
-      <div className="code-view mono py-3">
-        {lines.map((l) => (
-          <div key={l.n} className={`code-line ${l.hit ? `hit-${l.hit}` : ""}`}>
-            <span className="ln">{l.n}</span>
-            <code>{l.code || " "}</code>
+    <figure className="panel overflow-hidden" aria-label="Example: FairCheck's notes on a hiring function">
+      <figcaption className="flex items-center justify-between border-b px-4 py-2.5 t-small muted" style={{ borderColor: "var(--rule)" }}>
+        <span className="mono">candidate-screening.ts</span>
+        <span>3 issues</span>
+      </figcaption>
+      <div className="py-3">
+        {HERO_LINES.map((l) => (
+          <div key={l.n} className="grid gap-x-5 md:grid-cols-[minmax(0,1fr)_14rem]">
+            <div className="code-line code-view min-w-0">
+              <span className="ln">{l.n}</span>
+              <code className="wrap-narrow">
+                {l.note ? <span className="marker">{l.code.trimStart()}</span> : l.code || " "}
+              </code>
+            </div>
+            {l.note && (
+              <div className="mb-3 ml-12 mt-1 border-l-2 pl-3 md:mb-1 md:ml-0 md:mt-0.5 md:pr-4" style={{ borderColor: l.note.sev === "High" ? "var(--high)" : "var(--medium)" }}>
+                <p className="t-small leading-snug">
+                  <span className={`font-bold ${l.note.sev === "High" ? "sev-high" : "sev-medium"}`}>{l.note.sev}:</span>{" "}
+                  <span className="font-bold">{l.note.title}.</span>{" "}
+                  <span className="soft">{l.note.body}</span>
+                </p>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <div className="m-3 mt-0 rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="pill sev-high">✕ High</span>
-          <span className="text-xs" style={{ color: "var(--text-3)" }}>Protected attribute in logic · Line 29</span>
-        </div>
-        <p className="text-sm font-semibold">Decision branches on age</p>
-        <p className="mt-1 text-sm" style={{ color: "var(--text-2)" }}>
-          This lowers a candidate&apos;s score because of their age, which is age discrimination in hiring (e.g. US ADEA, UK Equality Act).
-        </p>
-        <p className="mt-2 text-sm" style={{ color: "var(--good)" }}>
-          Fix: score on job-relevant factors only, and keep age out of decision code.
-        </p>
-      </div>
-    </div>
+    </figure>
   );
 }
 
 export default function Landing() {
   return (
     <div className="min-h-screen">
-      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(15,17,23,0.8)", borderBottom: "1px solid var(--border)" }}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+      <header className="border-b" style={{ borderColor: "var(--rule)" }}>
+        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <Logo />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:block"><a href="#how" className="btn btn-quiet">How it works</a></span>
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <button type="button" className="btn btn-ghost btn-sm">Sign in</button>
+                <button type="button" className="btn btn-quiet">Sign in</button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button type="button" className="btn btn-soft btn-sm">Get started free</button>
+                <button type="button" className="btn btn-primary btn-sm">Start a scan</button>
               </SignUpButton>
             </Show>
             <Show when="signed-in">
-              <Link href="/dashboard" className="btn btn-soft btn-sm">Open dashboard →</Link>
+              <Link href="/dashboard" className="btn btn-primary btn-sm">Dashboard</Link>
               <UserButton />
             </Show>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="grid-bg relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 50% 30%, rgba(59,130,246,0.1), transparent 70%)" }} />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-28">
-          <div>
-            <span className="pill sev-good mb-6">For developers & ML engineers</span>
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              Catch bias in your code <span className="gradient-text">before it ships.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed" style={{ color: "var(--text-2)" }}>
-              FairCheck reviews your code, UI text and training data the way a fairness expert would, then shows you exactly which lines could
-              treat people unfairly and how to fix them.
+      <main>
+        {/* Hero */}
+        <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-20 pt-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:pt-24">
+          <div className="max-w-xl">
+            <h1 className="t-display">Find the lines in your code that treat people unfairly.</h1>
+            <p className="t-lead mt-6">
+              FairCheck reads your code, interface text and training data the way a careful reviewer would. It points to the exact line,
+              explains who could be harmed, and suggests what to change.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Show when="signed-out">
                 <SignUpButton mode="modal">
-                  <button type="button" className="btn btn-primary" style={{ padding: "14px 26px", fontSize: "1rem" }}>
-                    Scan your code free →
-                  </button>
+                  <button type="button" className="btn btn-primary">Scan your code</button>
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
-                <Link href="/dashboard" className="btn btn-primary" style={{ padding: "14px 26px", fontSize: "1rem" }}>
-                  Start a scan →
-                </Link>
+                <Link href="/dashboard" className="btn btn-primary">Scan your code</Link>
               </Show>
-              <a href="#how" className="text-sm hover:underline" style={{ color: "var(--text-2)" }}>
-                See how it works
-              </a>
+              <a href="#how" className="btn btn-secondary">How it works</a>
             </div>
-            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm" style={{ color: "var(--text-3)" }}>
-              {["Line-by-line fixes", "Any language", "CSV rows stay in your browser"].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <span style={{ color: "var(--good)" }}>✓</span> {t}
+          </div>
+          <ReviewedCode />
+        </section>
+
+        {/* What it checks */}
+        <section className="border-t" style={{ borderColor: "var(--rule)" }}>
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <h2 className="t-h2 max-w-2xl">Three places bias gets into software</h2>
+            <p className="t-lead mt-3 max-w-2xl">Most of it isn&apos;t intentional. It arrives as a shortcut in the logic, a form field, or a dataset nobody checked.</p>
+            <dl className="mt-12">
+              {CHECKS.map((c) => (
+                <div key={c.name} className="grid gap-3 border-t py-8 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-12" style={{ borderColor: "var(--rule)" }}>
+                  <dt className="t-h3">{c.name}</dt>
+                  <dd>
+                    <p className="max-w-[62ch] soft">{c.body}</p>
+                    <ul className="mt-4 flex flex-wrap gap-2" aria-label={`Examples for ${c.name}`}>
+                      {c.examples.map((e) => (
+                        <li key={e} className="mono rounded px-2 py-1 text-[0.8rem]" style={{ background: "var(--paper-2)", border: "1px solid var(--rule)" }}>
+                          {e}
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        {/* Real cases */}
+        <section style={{ background: "var(--paper-2)" }}>
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <h2 className="t-h2 max-w-2xl">These started as ordinary lines of code</h2>
+            <p className="t-lead mt-3 max-w-2xl">Each one was written, reviewed and shipped. Each matches a check FairCheck runs today.</p>
+            <ul className="mt-12">
+              {CASES.map((c) => (
+                <li key={c.who} className="grid gap-2 border-t py-6 md:grid-cols-[6rem_minmax(0,1fr)_16rem] md:gap-8" style={{ borderColor: "var(--rule-strong)" }}>
+                  <span className="mono t-small muted md:pt-0.5">{c.year}</span>
+                  <p>
+                    <span className="font-bold">{c.who}.</span> <span className="soft">{c.what}</span>
+                  </p>
+                  <p className="t-small muted md:pt-0.5">Caught by: {c.check}</p>
                 </li>
               ))}
             </ul>
           </div>
-          <CodePreview />
-        </div>
-      </section>
+        </section>
 
-      {/* What it checks */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">Three places bias hides in software</h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center" style={{ color: "var(--text-2)" }}>
-          Most bias isn&apos;t intentional. It slips in through a shortcut in the logic, a form field, or a dataset nobody checked.
-        </p>
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
-          {CHECKS.map((c) => (
-            <div key={c.title} className="card flex flex-col p-6 transition-transform hover:-translate-y-1">
-              <span
-                className="mono mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-sm font-bold"
-                style={{ background: "var(--accent-soft)", color: "#93c5fd", border: "1px solid rgba(59,130,246,0.3)" }}
-              >
-                {c.icon}
-              </span>
-              <h3 className="text-xl font-bold">{c.title}</h3>
-              <p className="mt-3 flex-1 text-sm leading-relaxed" style={{ color: "var(--text-2)" }}>{c.body}</p>
-              <div className="mt-5 flex flex-wrap gap-1.5">
-                {c.tags.map((t) => (
-                  <span key={t} className="pill">{t}</span>
-                ))}
-              </div>
+        {/* How it works */}
+        <section id="how" className="scroll-mt-8">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <h2 className="t-h2">How it works</h2>
+            <ol className="mt-10 grid gap-10 md:grid-cols-3">
+              <li>
+                <p className="t-h3">1. Paste or upload</p>
+                <p className="mt-2 soft">A file, a function, a sign-up form or a CSV. Nothing to install.</p>
+              </li>
+              <li>
+                <p className="t-h3">2. Two reviewers read it</p>
+                <p className="mt-2 soft">Fixed rules catch the known traps in seconds. Then an AI review reads for context, adds what the rules miss and clears false alarms.</p>
+              </li>
+              <li>
+                <p className="t-h3">3. Fix it line by line</p>
+                <p className="mt-2 soft">Each note names the line, explains the harm in plain words and suggests a change. Copy the report into your pull request.</p>
+              </li>
+            </ol>
+
+            <div className="mt-16 flex flex-col items-start gap-5 border-t pt-10 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--rule)" }}>
+              <p className="t-h3 max-w-xl">Make fairness part of code review, like tests and linting.</p>
+              <Show when="signed-out">
+                <SignUpButton mode="modal">
+                  <button type="button" className="btn btn-primary">Run your first scan</button>
+                </SignUpButton>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/dashboard" className="btn btn-primary">Run a scan</Link>
+              </Show>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Why */}
-      <section className="py-24" style={{ background: "linear-gradient(180deg, transparent, rgba(59,130,246,0.04), transparent)" }}>
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
-            Every one of these <span style={{ color: "var(--high)" }}>started as code</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center" style={{ color: "var(--text-2)" }}>
-            Each was written by a developer, reviewed and shipped. Each maps to a check FairCheck runs.
-          </p>
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {INCIDENTS.map((i) => (
-              <div key={i.who} className="card flex flex-col p-6">
-                <p className="mono text-xs" style={{ color: "var(--text-3)" }}>{i.who}</p>
-                <p className="mt-3 flex-1 text-sm leading-relaxed" style={{ color: "var(--text)" }}>{i.what}</p>
-                <p className="mt-5 text-xs" style={{ color: "var(--text-3)" }}>
-                  Would be flagged by: <span style={{ color: "#93c5fd" }}>{i.rule}</span>
-                </p>
-              </div>
-            ))}
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* How */}
-      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-24">
-        <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
-          {STEPS.map((s) => (
-            <div key={s.n} className="card p-6">
-              <p className="mono text-3xl font-bold" style={{ color: "rgba(59,130,246,0.35)" }}>{s.n}</p>
-              <h3 className="mt-4 text-lg font-bold">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--text-2)" }}>{s.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="card mt-14 flex flex-col items-center gap-5 p-10 text-center" style={{ background: "linear-gradient(135deg, var(--surface), rgba(59,130,246,0.07))" }}>
-          <h3 className="text-2xl font-bold">Make fairness part of code review.</h3>
-          <p className="max-w-xl" style={{ color: "var(--text-2)" }}>
-            It takes less time than a lint run, and costs far less than a regulator&apos;s letter.
-          </p>
-          <Show when="signed-out">
-            <SignUpButton mode="modal">
-              <button type="button" className="btn btn-primary">Scan your first file →</button>
-            </SignUpButton>
-          </Show>
-          <Show when="signed-in">
-            <Link href="/dashboard" className="btn btn-primary">Start a scan →</Link>
-          </Show>
-        </div>
-      </section>
-
-      <footer className="px-6 py-10" style={{ borderTop: "1px solid var(--border)" }}>
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm sm:flex-row" style={{ color: "var(--text-3)" }}>
-          <Logo />
-          <p>Built by Gabriel Ferreira</p>
-          <p className="text-xs">FairCheck flags risks; it isn&apos;t legal advice.</p>
+      <footer className="border-t" style={{ borderColor: "var(--rule)" }}>
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 t-small muted sm:flex-row sm:justify-between">
+          <p>FairCheck, built by Gabriel Ferreira.</p>
+          <p>FairCheck points out risks. It isn&apos;t legal advice.</p>
         </div>
       </footer>
     </div>

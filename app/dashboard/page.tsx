@@ -14,11 +14,13 @@ type Audit = { id: string; input_text: string; result: string; bias_score: strin
 const MAX_CHARS = 200_000;
 const MAX_CSV_BYTES = 50 * 1024 * 1024;
 
-const MODES: { key: ScanMode; label: string; icon: string; blurb: string }[] = [
-  { key: "code", label: "Code", icon: "</>", blurb: "Logic, validation, data models and ML pipelines" },
-  { key: "text", label: "UI text & names", icon: "Aa", blurb: "Copy, forms, docs, comments and identifiers" },
-  { key: "dataset", label: "Dataset (CSV)", icon: "▦", blurb: "Training or test data: representation and outcome gaps" },
+const MODES: { key: ScanMode; label: string; blurb: string }[] = [
+  { key: "code", label: "Code", blurb: "Logic, validation, data models and ML pipelines." },
+  { key: "text", label: "Text and names", blurb: "Interface copy, form fields, docs, comments and variable names." },
+  { key: "dataset", label: "Dataset", blurb: "A CSV of training or test data. It's read in your browser; only totals are sent."  },
 ];
+
+const MODE_NAME: Record<ScanMode, string> = { code: "Code", text: "Interface text", dataset: "Dataset" };
 
 function parseStored(a: Audit): ScanReport | null {
   try {
@@ -165,94 +167,81 @@ export default function Dashboard() {
     if (file) void readFile(file);
   };
 
+  const currentMode = MODES.find((m) => m.key === mode)!;
+
   return (
     <div className="min-h-screen">
-      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(15,17,23,0.9)", borderBottom: "1px solid var(--border)" }}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3.5 sm:gap-4 sm:px-6">
+      <header className="border-b" style={{ borderColor: "var(--rule)" }}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Logo />
-          <div className="flex items-center gap-1" role="tablist" aria-label="Dashboard sections">
-            <button type="button" role="tab" aria-selected={tab === "scan"} className="tab" onClick={() => setTab("scan")}>
+          <div className="segmented" role="tablist" aria-label="Dashboard sections">
+            <button type="button" role="tab" aria-selected={tab === "scan"} onClick={() => setTab("scan")}>
               New scan
             </button>
-            <button type="button" role="tab" aria-selected={tab === "history"} className="tab" onClick={() => setTab("history")}>
-              History {historyState === "ready" && <span style={{ color: "var(--text-3)" }}>({audits.length})</span>}
+            <button type="button" role="tab" aria-selected={tab === "history"} onClick={() => setTab("history")}>
+              History{historyState === "ready" ? ` (${audits.length})` : ""}
             </button>
           </div>
           <UserButton />
         </div>
-      </nav>
+      </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         {tab === "scan" && (
           <>
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {user?.firstName ? `Hi ${user.firstName}, what` : "What"} are you shipping?
-              </h1>
-              <p className="mt-2 max-w-2xl" style={{ color: "var(--text-2)" }}>
-                Paste or drop in your work. FairCheck finds the places where it could treat people unfairly and tells you how to fix each one.
-              </p>
-            </header>
+            <h1 className="t-h2">{user?.firstName ? `What are you checking today, ${user.firstName}?` : "What are you checking today?"}</h1>
 
-            {/* Mode picker */}
-            <div className="mb-5 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="What are you checking?">
-              {MODES.map((m) => {
-                const on = mode === m.key;
-                return (
+            <div className="mt-6">
+              <div className="segmented max-w-full flex-nowrap overflow-x-auto" role="radiogroup" aria-label="What to check">
+                {MODES.map((m) => (
                   <button
                     key={m.key}
                     type="button"
                     role="radio"
-                    aria-checked={on}
+                    aria-checked={mode === m.key}
                     onClick={() => {
                       setMode(m.key);
                       setError(null);
                     }}
-                    className="card flex items-start gap-3 p-4 text-left transition-colors"
-                    style={{ borderColor: on ? "rgba(59,130,246,0.6)" : undefined, background: on ? "linear-gradient(135deg, var(--surface), rgba(59,130,246,0.08))" : undefined }}
                   >
-                    <span
-                      className="mono flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
-                      style={{ background: on ? "var(--accent-soft)" : "rgba(255,255,255,0.04)", color: on ? "#93c5fd" : "var(--text-3)", border: "1px solid var(--border)" }}
-                    >
-                      {m.icon}
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold">{m.label}</span>
-                      <span className="block text-xs" style={{ color: "var(--text-3)" }}>{m.blurb}</span>
-                    </span>
+                    {m.label}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+              <p className="mt-2 t-small muted">{currentMode.blurb}</p>
             </div>
 
             {/* Input */}
             <section
-              className="card p-5"
+              className="panel mt-6 p-4 sm:p-5"
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragging(true);
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
-              style={{ borderColor: dragging ? "rgba(59,130,246,0.7)" : undefined, borderStyle: dragging ? "dashed" : undefined }}
+              style={dragging ? { borderColor: "var(--link)", borderStyle: "dashed", background: "var(--paper-2)" } : undefined}
             >
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-3)" }}>
-                  <span>Try an example:</span>
+                <div className="flex flex-wrap items-center gap-1 t-small">
+                  <span className="muted mr-1">Load an example:</span>
                   {mode === "code" && (
                     <>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => loadExample("ts")}>Hiring logic (TS)</button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => loadExample("py")}>Loan model (Python)</button>
+                      <button type="button" className="btn btn-quiet btn-sm text-link" onClick={() => loadExample("ts")}>hiring logic in TypeScript</button>
+                      <button type="button" className="btn btn-quiet btn-sm text-link" onClick={() => loadExample("py")}>loan model in Python</button>
                     </>
                   )}
-                  {mode === "text" && <button type="button" className="btn btn-ghost btn-sm" onClick={() => loadExample("text")}>Sign-up form & help text</button>}
-                  {mode === "dataset" && <button type="button" className="btn btn-ghost btn-sm" onClick={() => loadExample("csv")}>Hiring dataset</button>}
+                  {mode === "text" && (
+                    <button type="button" className="btn btn-quiet btn-sm text-link" onClick={() => loadExample("text")}>sign-up form and help text</button>
+                  )}
+                  {mode === "dataset" && (
+                    <button type="button" className="btn btn-quiet btn-sm text-link" onClick={() => loadExample("csv")}>hiring dataset</button>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {fileName && mode !== "dataset" && <span className="mono text-xs" style={{ color: "var(--text-2)" }}>{fileName}</span>}
-                  <button type="button" className="btn btn-soft btn-sm" onClick={() => fileInput.current?.click()}>
-                    Upload file
+                <div className="flex items-center gap-3">
+                  {fileName && mode !== "dataset" && <span className="mono t-small muted">{fileName}</span>}
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => fileInput.current?.click()}>
+                    Upload a file
                   </button>
                   <input
                     ref={fileInput}
@@ -281,41 +270,41 @@ export default function Dashboard() {
                     }}
                     placeholder={
                       mode === "code"
-                        ? "Paste a function, component, model or SQL query, or drop a file here.\n\nFairCheck looks for decisions based on gender, race, age and other protected traits, proxies like ZIP codes, forms that exclude real names and genders, and biased ML features."
-                        : "Paste UI copy, form labels, docs, comments or a list of identifiers, or drop a file here.\n\nFairCheck looks for exclusionary wording, gendered defaults and forms that leave people out."
+                        ? "Paste a function, component, model or SQL query here, or drop a file onto this box."
+                        : "Paste interface copy, form labels, docs, comments or a list of variable names here, or drop a file onto this box."
                     }
-                    style={{ resize: "vertical", minHeight: 260 }}
-                    aria-label={mode === "code" ? "Code to scan" : "Text to scan"}
+                    style={{ resize: "vertical", minHeight: 280 }}
+                    aria-label={mode === "code" ? "Code to check" : "Text to check"}
                   />
-                  <p className="mt-2 text-xs" style={{ color: content.length > MAX_CHARS ? "var(--high)" : "var(--text-3)" }}>
-                    {content.split("\n").length.toLocaleString()} lines · {content.length.toLocaleString()} / {MAX_CHARS.toLocaleString()} characters
+                  <p className="mt-2 t-small" style={{ color: content.length > MAX_CHARS ? "var(--high)" : "var(--ink-3)" }}>
+                    {content ? `${content.split("\n").length.toLocaleString()} lines, ` : ""}
+                    {content.length.toLocaleString()} of {MAX_CHARS.toLocaleString()} characters
                   </p>
                 </>
               ) : !csv ? (
                 <button
                   type="button"
                   onClick={() => fileInput.current?.click()}
-                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl py-16 text-center"
-                  style={{ border: "1px dashed var(--border-strong)", background: "rgba(255,255,255,0.02)" }}
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-md px-6 py-16 text-center"
+                  style={{ border: "1px dashed var(--rule-strong)", background: "var(--paper-2)" }}
                 >
-                  <span className="text-3xl" aria-hidden="true">▦</span>
-                  <span className="font-medium">Drop a CSV here or click to choose one</span>
-                  <span className="max-w-md text-xs" style={{ color: "var(--text-3)" }}>
-                    The file is read in your browser. Only column totals and group rates are sent for the review, never the rows themselves.
+                  <span className="font-bold">Choose a CSV file, or drop one here</span>
+                  <span className="max-w-md t-small muted">
+                    It stays in your browser. FairCheck only sends column names, group counts and outcome rates for the review.
                   </span>
                 </button>
               ) : (
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-6">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm">
-                      <span className="mono">{csvName ?? "data.csv"}</span>
-                      <span style={{ color: "var(--text-3)" }}>
-                        {" "}· {csv.rows.length.toLocaleString()} rows · {csv.headers.length} columns{csv.truncated ? " (first 200,000 rows)" : ""}
+                    <p>
+                      <span className="mono font-bold">{csvName ?? "data.csv"}</span>{" "}
+                      <span className="muted">
+                        has {csv.rows.length.toLocaleString()} rows and {csv.headers.length} columns{csv.truncated ? " (first 200,000 rows read)" : ""}.
                       </span>
                     </p>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-quiet btn-sm"
                       onClick={() => {
                         setCsv(null);
                         setCols(null);
@@ -326,25 +315,25 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="grid gap-8 md:grid-cols-2">
                     <fieldset>
-                      <legend className="mb-1 text-sm font-semibold">Demographic columns to audit</legend>
-                      <p className="mb-3 text-xs" style={{ color: "var(--text-3)" }}>We pre-selected the ones that look like protected traits. Adjust if needed.</p>
+                      <legend className="font-bold">Which columns describe people&apos;s demographics?</legend>
+                      <p className="mb-3 t-small muted">We ticked the ones that look like protected traits. Change them if needed.</p>
                       <div className="flex max-h-48 flex-wrap gap-2 overflow-auto">
                         {csv.headers.map((h) => {
                           const on = sensitive.includes(h);
                           return (
                             <label
                               key={h}
-                              className="mono flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs"
-                              style={{ border: `1px solid ${on ? "rgba(59,130,246,0.6)" : "var(--border)"}`, background: on ? "var(--accent-soft)" : "transparent" }}
+                              className="mono flex cursor-pointer items-center gap-2 rounded px-2.5 py-1.5 text-[0.8rem]"
+                              style={{ border: `1px solid ${on ? "var(--ink)" : "var(--rule-strong)"}`, background: on ? "var(--paper-2)" : "var(--paper)" }}
                             >
                               <input
                                 type="checkbox"
                                 checked={on}
                                 disabled={h === targetCol}
                                 onChange={() => setSensitive((s) => (on ? s.filter((x) => x !== h) : [...s, h]))}
-                                className="accent-blue-500"
+                                style={{ accentColor: "var(--ink)" }}
                               />
                               {h}
                             </label>
@@ -354,11 +343,9 @@ export default function Dashboard() {
                     </fieldset>
 
                     <fieldset>
-                      <legend className="mb-1 text-sm font-semibold">Outcome column</legend>
-                      <p className="mb-3 text-xs" style={{ color: "var(--text-3)" }}>
-                        A yes/no result (hired, approved, label). FairCheck compares how often each group gets the good outcome.
-                      </p>
-                      <div className="flex flex-wrap gap-3">
+                      <legend className="font-bold">Which column is the outcome?</legend>
+                      <p className="mb-3 t-small muted">A yes/no result such as hired, approved or label. FairCheck compares how often each group gets the good result.</p>
+                      <div className="flex flex-wrap items-center gap-3">
                         <select
                           className="field mono"
                           style={{ width: "auto", minWidth: 180 }}
@@ -378,8 +365,8 @@ export default function Dashboard() {
                           ))}
                         </select>
                         {targetInfo?.binaryValues && (
-                          <label className="flex items-center gap-2 text-xs" style={{ color: "var(--text-2)" }}>
-                            Good outcome =
+                          <label className="flex items-center gap-2 t-small soft">
+                            Good result is
                             <select className="field mono" style={{ width: "auto" }} value={positive} onChange={(e) => setPositive(e.target.value)}>
                               {targetInfo.binaryValues.map((v) => (
                                 <option key={v} value={v}>{v}</option>
@@ -389,41 +376,32 @@ export default function Dashboard() {
                         )}
                       </div>
                       {binaryCols.length === 0 && (
-                        <p className="mt-2 text-xs" style={{ color: "var(--text-3)" }}>No yes/no columns found, so only representation will be checked.</p>
+                        <p className="mt-2 t-small muted">There are no yes/no columns, so FairCheck will only check how well each group is represented.</p>
                       )}
                     </fieldset>
                   </div>
                 </div>
               )}
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-                <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                  Rule checks run instantly; an AI reviewer then adds context-aware findings and filters out false alarms.
-                </p>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: "var(--rule)" }}>
+                <p className="t-small muted">Rules run first, then an AI review adds context and clears false alarms.</p>
                 <button type="button" className="btn btn-primary" onClick={runScan} disabled={!canScan}>
-                  {scanning ? (
-                    <>
-                      Scanning<span className="pulse-dot">…</span>
-                    </>
-                  ) : (
-                    "Scan for bias →"
-                  )}
+                  {scanning ? "Checking…" : "Check for bias"}
                 </button>
               </div>
             </section>
 
             {error && (
-              <p role="alert" className="mt-4 rounded-xl px-4 py-3 text-sm sev-high" style={{ border: "1px solid rgba(248,113,113,0.3)" }}>
+              <p role="alert" className="mt-4 rounded px-4 py-3" style={{ background: "var(--high-bg)", color: "var(--high)" }}>
                 {error}
               </p>
             )}
 
-            <div ref={resultsRef} className="scroll-mt-24 pt-8">
+            <div ref={resultsRef} className="scroll-mt-6 pt-12" aria-live="polite">
               {scanning && (
-                <div className="card flex flex-col items-center gap-2 py-14 text-center">
-                  <p className="font-medium">Reviewing your {mode === "dataset" ? "data" : mode === "code" ? "code" : "text"}…</p>
-                  <p className="text-sm" style={{ color: "var(--text-3)" }}>Rules first, then the AI reviewer. This usually takes 5–20 seconds.</p>
-                </div>
+                <p className="soft">
+                  Checking your {mode === "dataset" ? "data" : mode === "code" ? "code" : "text"}. This usually takes 5 to 20 seconds.
+                </p>
               )}
               {report && <ReportView report={report} />}
             </div>
@@ -432,56 +410,58 @@ export default function Dashboard() {
 
         {tab === "history" && (
           <section>
-            <h1 className="mb-6 text-3xl font-bold tracking-tight">Scan history</h1>
-            {historyState === "loading" && <p style={{ color: "var(--text-3)" }}>Loading…</p>}
-            {historyState === "error" && <p className="sev-high rounded-xl px-4 py-3 text-sm">Couldn&apos;t load your history.</p>}
-            {historyState === "off" && (
-              <p style={{ color: "var(--text-3)" }}>History isn&apos;t set up yet: add your Supabase keys to save scans.</p>
-            )}
-            {historyState === "ready" && audits.length === 0 && (
-              <div className="card flex flex-col items-center gap-3 py-16 text-center">
-                <p className="font-medium">No scans yet</p>
-                <button type="button" className="btn btn-soft btn-sm" onClick={() => setTab("scan")}>Run your first scan →</button>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              {audits.map((a) => {
-                const r = parseStored(a);
-                const open = openId === a.id;
-                const risk = r?.risk ?? a.bias_score;
-                const cls = risk === "High" ? "sev-high" : risk === "Medium" ? "sev-medium" : risk === "Low" ? "sev-good" : "sev-info";
-                return (
-                  <div key={a.id} className="card">
-                    <div className="flex flex-wrap items-center gap-3 p-4">
-                      <span className={`pill ${cls}`}>{risk} risk</span>
-                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpenId(open ? null : a.id)} aria-expanded={open}>
-                        <span className="mono block truncate text-sm">{r?.title ?? a.input_text.slice(0, 80)}</span>
-                        <span className="block text-xs" style={{ color: "var(--text-3)" }}>
-                          {r ? `${{ code: "Code", text: "UI text & names", dataset: "Dataset" }[r.mode]} · ${r.counts.high} high, ${r.counts.medium} medium, ${r.counts.low} low · ` : "Legacy audit · "}
-                          {new Date(a.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpenId(open ? null : a.id)}>
-                        {open ? "Hide" : "View"}
-                      </button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeAudit(a.id)} aria-label="Delete this scan">
-                        Delete
-                      </button>
-                    </div>
-                    {open && (
-                      <div className="p-4 pt-0">
-                        {r ? (
-                          <ReportView report={r} />
-                        ) : (
-                          <pre className="whitespace-pre-wrap rounded-xl p-4 text-sm" style={{ background: "rgba(0,0,0,0.25)", color: "var(--text-2)" }}>
-                            {a.result}
-                          </pre>
-                        )}
+            <h1 className="t-h2">Your past scans</h1>
+            <div className="mt-6">
+              {historyState === "loading" && <p className="soft">Loading your scans…</p>}
+              {historyState === "error" && <p style={{ color: "var(--high)" }}>Your scans couldn&apos;t be loaded. Refresh the page to try again.</p>}
+              {historyState === "off" && <p className="soft">Scan history isn&apos;t set up. Add your Supabase keys to save scans.</p>}
+              {historyState === "ready" && audits.length === 0 && (
+                <div className="py-10">
+                  <p className="soft">You haven&apos;t run any scans yet.</p>
+                  <button type="button" className="btn btn-primary mt-4" onClick={() => setTab("scan")}>Run your first scan</button>
+                </div>
+              )}
+              <ul className="border-t" style={{ borderColor: audits.length ? "var(--rule)" : "transparent" }}>
+                {audits.map((a) => {
+                  const r = parseStored(a);
+                  const open = openId === a.id;
+                  const risk = r?.risk ?? a.bias_score;
+                  const cls = risk === "High" ? "sev-high" : risk === "Medium" ? "sev-medium" : risk === "Low" ? "sev-good" : "sev-info";
+                  const when = new Date(a.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <li key={a.id} className="border-b" style={{ borderColor: "var(--rule)" }}>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-4">
+                        <span className={`sev ${cls} w-28 shrink-0`}>{risk} risk</span>
+                        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpenId(open ? null : a.id)} aria-expanded={open}>
+                          <span className="mono block truncate">{r?.title ?? a.input_text.slice(0, 80)}</span>
+                          <span className="block t-small muted">
+                            {r
+                              ? `${MODE_NAME[r.mode]}, ${r.counts.high} high, ${r.counts.medium} medium, ${r.counts.low} low. ${when}`
+                              : `Older audit. ${when}`}
+                          </span>
+                        </button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpenId(open ? null : a.id)}>
+                          {open ? "Hide report" : "View report"}
+                        </button>
+                        <button type="button" className="btn btn-quiet btn-sm" onClick={() => removeAudit(a.id)}>
+                          Delete
+                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {open && (
+                        <div className="pb-8">
+                          {r ? (
+                            <ReportView report={r} />
+                          ) : (
+                            <pre className="whitespace-pre-wrap rounded p-4 t-small" style={{ background: "var(--paper-2)" }}>
+                              {a.result}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </section>
         )}

@@ -1,7 +1,7 @@
 import { SignUp } from "@clerk/nextjs";
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0F1117]">
+    <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--paper-2)" }}>
       <SignUp />
     </div>
   );

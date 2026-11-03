@@ -6,17 +6,17 @@ import { reportToMarkdown } from "@/lib/report-markdown";
 import type { Finding, ScanReport, Severity } from "@/lib/scanner/types";
 import { DatasetCharts } from "./DatasetCharts";
 
-const SEV_LABEL: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low", info: "Info" };
-const SEV_ICON: Record<Severity, string> = { high: "✕", medium: "!", low: "i", info: "·" };
+const SEV_LABEL: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low", info: "Note" };
 const SEV_RANK: Severity[] = ["high", "medium", "low", "info"];
-const MODE_LABEL = { code: "Code", text: "UI text & names", dataset: "Dataset" } as const;
+const SEV_BORDER: Record<Severity, string> = { high: "var(--high)", medium: "var(--medium)", low: "var(--low)", info: "var(--rule-strong)" };
+const MODE_LABEL = { code: "Code", text: "Interface text and names", dataset: "Dataset" } as const;
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-sm"
+      className="btn btn-quiet btn-sm"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -27,60 +27,44 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
         }
       }}
     >
-      {done ? "Copied ✓" : label}
+      {done ? "Copied" : label}
     </button>
   );
 }
 
-function RiskBadge({ risk }: { risk: ScanReport["risk"] }) {
-  const cls = risk === "High" ? "sev-high" : risk === "Medium" ? "sev-medium" : "sev-good";
-  const icon = risk === "High" ? "✕" : risk === "Medium" ? "!" : "✓";
+function FindingItem({ f, active, onSelect }: { f: Finding; active: boolean; onSelect: () => void }) {
   return (
-    <span className={`pill ${cls}`} style={{ fontSize: "0.8rem", padding: "5px 12px" }}>
-      {icon} {risk} risk
-    </span>
-  );
-}
-
-function FindingCard({ f, active, onSelect }: { f: Finding; active: boolean; onSelect: () => void }) {
-  return (
-    <article
+    <li
       id={`finding-${f.id}`}
-      className="card p-4 transition-colors"
-      style={{ borderColor: active ? "rgba(59,130,246,0.55)" : undefined, background: f.severity === "info" ? "transparent" : undefined }}
+      className="border-l-[3px] py-5 pl-5 pr-1"
+      style={{ borderColor: SEV_BORDER[f.severity], background: active ? "var(--paper-2)" : undefined }}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className={`pill sev-${f.severity}`}>
-          {SEV_ICON[f.severity]} {SEV_LABEL[f.severity]}
-        </span>
-        <span className="text-xs" style={{ color: "var(--text-3)" }}>{f.category}</span>
-        <span className="text-xs" style={{ color: "var(--text-3)" }}>· {f.source === "ai" ? "AI review" : "Rule"}</span>
+      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className={`sev sev-${f.severity}`}>{SEV_LABEL[f.severity]}</span>
+        <span className="t-small muted">{f.category}</span>
+        {f.source === "ai" && <span className="t-small muted">(AI review)</span>}
         {f.line && (
-          <button type="button" onClick={onSelect} className="mono ml-auto text-xs hover:underline" style={{ color: "#93c5fd" }}>
-            Line {f.line} →
+          <button type="button" onClick={onSelect} className="mono t-small text-link ml-auto">
+            Line {f.line}
           </button>
         )}
       </div>
-      <h4 className="mb-1 font-semibold leading-snug">{f.title}</h4>
+      <h4 className="text-[1.05rem] font-bold leading-snug">{f.title}</h4>
       {f.snippet && (
-        <pre className="mono my-2 overflow-x-auto rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(0,0,0,0.3)", color: "#c9d1d9" }}>
+        <pre className="mono mt-2 overflow-x-auto rounded px-3 py-2 text-[0.8rem]" style={{ background: "var(--paper-2)", border: "1px solid var(--rule)" }}>
           {f.snippet}
         </pre>
       )}
-      <p className="text-sm leading-relaxed" style={{ color: "var(--text-2)" }}>{f.explanation}</p>
-      <div className="mt-3 rounded-lg p-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.18)" }}>
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--good)" }}>How to fix</p>
+      <p className="mt-2 max-w-[70ch] soft">{f.explanation}</p>
+      <div className="mt-3 rounded px-4 py-3" style={{ background: "var(--good-bg)" }}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="t-small font-bold" style={{ color: "var(--good)" }}>Suggested change</p>
           <CopyButton text={f.suggestion} />
         </div>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "var(--text)" }}>{f.suggestion}</p>
+        <p className="mt-0.5 max-w-[70ch] whitespace-pre-wrap">{f.suggestion}</p>
       </div>
-      {f.aiNote && (
-        <p className="mt-3 text-xs italic" style={{ color: "var(--text-3)" }}>
-          AI review marked this as probably fine: {f.aiNote}
-        </p>
-      )}
-    </article>
+      {f.aiNote && <p className="mt-3 t-small italic muted">The AI review thinks this one is probably fine: {f.aiNote}</p>}
+    </li>
   );
 }
 
@@ -104,10 +88,9 @@ function CodeView({
     }
     return m;
   }, [findings]);
-  const lines = content.split(/\r?\n/);
   return (
-    <div className="code-view mono overflow-auto py-3" style={{ maxHeight: "70vh" }}>
-      {lines.map((l, i) => {
+    <div className="code-view overflow-auto py-3" style={{ maxHeight: "72vh" }}>
+      {content.split(/\r?\n/).map((l, i) => {
         const n = i + 1;
         const sev = worstByLine.get(n);
         return (
@@ -117,6 +100,7 @@ function CodeView({
             className={`code-line ${sev ? `hit-${sev}` : ""} ${activeLine === n ? "active" : ""}`}
             data-clickable={sev ? "true" : "false"}
             onClick={sev ? () => onLineClick(n) : undefined}
+            title={sev ? `${SEV_LABEL[sev]}: click to see the note` : undefined}
           >
             <span className="ln">{n}</span>
             <code>{l || " "}</code>
@@ -135,16 +119,12 @@ export function ReportView({ report }: { report: ScanReport }) {
   const visible = report.findings.filter((f) => filter === "all" || f.severity === filter);
   const active = report.findings.find((f) => f.id === activeId) ?? null;
   const hasCode = Boolean(report.content) && report.mode !== "dataset";
+  const issueCount = report.counts.high + report.counts.medium + report.counts.low;
 
   const goToLine = (line: number) => {
     const el = codeRef.current?.querySelector<HTMLElement>(`#code-line-${line}`);
     const box = el?.closest<HTMLElement>(".code-view");
     if (el && box) box.scrollTo({ top: el.offsetTop - box.clientHeight / 3, behavior: "smooth" });
-  };
-
-  const selectFinding = (f: Finding) => {
-    setActiveId(f.id);
-    if (f.line) goToLine(f.line);
   };
 
   const selectLine = (line: number) => {
@@ -165,76 +145,85 @@ export function ReportView({ report }: { report: ScanReport }) {
     URL.revokeObjectURL(a.href);
   };
 
-  const issueCount = report.counts.high + report.counts.medium + report.counts.low;
+  const riskSev = report.risk === "High" ? "high" : report.risk === "Medium" ? "medium" : "good";
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8">
       {/* Summary */}
-      <section className="card p-5 sm:p-6">
+      <section className="border-b pb-8" style={{ borderColor: "var(--rule)" }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <RiskBadge risk={report.risk} />
-              <span className="pill">{MODE_LABEL[report.mode]}</span>
-              {report.language && report.language !== "Unknown" && <span className="pill">{report.language}</span>}
-              <span className="pill" title={report.aiReviewed ? "Checked by the rule engine and by AI" : "AI review was unavailable"}>
-                {report.aiReviewed ? "Rules + AI review" : "Rules only"}
-              </span>
-            </div>
-            <h2 className="mono truncate text-lg font-semibold">{report.title}</h2>
+            <p className="t-small muted">
+              {MODE_LABEL[report.mode]}
+              {report.language && report.language !== "Unknown" ? `, ${report.language}` : ""}
+              {report.aiReviewed ? ", checked by rules and AI review" : ", checked by rules only"}
+            </p>
+            <h2 className="mt-1 t-h2">
+              <span className={`sev-${riskSev}`}>{report.risk} risk</span>{" "}
+              <span className="font-normal soft">in</span> <span className="mono text-[0.8em] break-all">{report.title}</span>
+            </h2>
           </div>
           <div className="flex gap-2">
             <CopyButton text={markdown} label="Copy as Markdown" />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={download}>
-              Download .md
+            <button type="button" className="btn btn-secondary btn-sm" onClick={download}>
+              Download report
             </button>
           </div>
         </div>
-        <p className="mt-4 max-w-3xl leading-relaxed" style={{ color: "var(--text-2)" }}>{report.summary}</p>
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(["high", "medium", "low", "info"] as Severity[]).map((s) => (
-            <div key={s} className="rounded-xl px-4 py-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" }}>
-              <p className="text-2xl font-bold">{report.counts[s]}</p>
-              <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                {SEV_ICON[s]} {SEV_LABEL[s]}
-                {s === "info" ? " / dismissed" : " severity"}
-              </p>
-            </div>
+        <p className="mt-4 max-w-[70ch] text-[1.05rem]">{report.summary}</p>
+        <p className="mt-4 flex flex-wrap gap-x-6 gap-y-1">
+          {(["high", "medium", "low"] as Severity[]).map((s) => (
+            <span key={s} className={`sev ${report.counts[s] ? `sev-${s}` : "sev-info"}`}>
+              {report.counts[s]} {SEV_LABEL[s].toLowerCase()}
+            </span>
           ))}
-        </div>
+          {report.counts.info > 0 && (
+            <span className="sev sev-info">
+              {report.counts.info} {report.counts.info === 1 ? "note" : "notes"}
+            </span>
+          )}
+        </p>
       </section>
 
       {report.dataset && <DatasetCharts dataset={report.dataset} />}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label="Filter findings by severity">
-        {(["all", "high", "medium", "low", "info"] as const).map((s) => {
-          const n = s === "all" ? report.findings.length : report.counts[s];
-          return (
-            <button key={s} type="button" role="tab" aria-selected={filter === s} className="tab" onClick={() => setFilter(s)}>
-              {s === "all" ? "All" : SEV_LABEL[s]} <span style={{ color: "var(--text-3)" }}>({n})</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className={`grid grid-cols-[minmax(0,1fr)] gap-5 ${hasCode ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
-        <div className="flex flex-col gap-3">
-          {visible.length === 0 && (
-            <div className="card p-8 text-center" style={{ color: "var(--text-3)" }}>
-              {issueCount === 0 && filter === "all" ? "✓ Nothing to fix here." : "No findings at this level."}
-            </div>
+      <div className={`grid grid-cols-[minmax(0,1fr)] gap-8 ${hasCode ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
+        <div>
+          <div className="segmented mb-4" role="tablist" aria-label="Show findings by severity">
+            {(["all", "high", "medium", "low", "info"] as const).map((s) => {
+              const n = s === "all" ? report.findings.length : report.counts[s];
+              if (s !== "all" && n === 0) return null;
+              return (
+                <button key={s} type="button" role="tab" aria-selected={filter === s} onClick={() => setFilter(s)}>
+                  {s === "all" ? "All" : SEV_LABEL[s]} ({n})
+                </button>
+              );
+            })}
+          </div>
+          {visible.length === 0 ? (
+            <p className="py-10 soft">{issueCount === 0 && filter === "all" ? "Nothing to change here." : "No findings at this level."}</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {visible.map((f) => (
+                <FindingItem
+                  key={f.id}
+                  f={f}
+                  active={f.id === activeId}
+                  onSelect={() => {
+                    setActiveId(f.id);
+                    if (f.line) goToLine(f.line);
+                  }}
+                />
+              ))}
+            </ul>
           )}
-          {visible.map((f) => (
-            <FindingCard key={f.id} f={f} active={f.id === activeId} onSelect={() => selectFinding(f)} />
-          ))}
         </div>
         {hasCode && (
-          <div ref={codeRef} className="lg:sticky lg:top-24 lg:self-start">
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 text-xs" style={{ borderBottom: "1px solid var(--border)", color: "var(--text-3)" }}>
-                <span className="mono">{report.title}</span>
-                <span>{active?.line ? `Line ${active.line}` : "Click a highlighted line"}</span>
+          <div ref={codeRef} className="lg:sticky lg:top-6 lg:self-start">
+            <div className="panel overflow-hidden">
+              <div className="flex items-center justify-between border-b px-4 py-2.5 t-small muted" style={{ borderColor: "var(--rule)" }}>
+                <span className="mono truncate">{report.title}</span>
+                <span className="shrink-0 pl-3">{active?.line ? `Line ${active.line}` : "Click a highlighted line"}</span>
               </div>
               <CodeView content={report.content!} findings={report.findings} activeLine={active?.line ?? null} onLineClick={selectLine} />
             </div>
