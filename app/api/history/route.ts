@@ -1,31 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { AUDITS_TABLE, supabaseAdmin } from "@/lib/supabase";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+// The user id always comes from the signed-in session, never from the URL,
+// so nobody can read or delete someone else's scans.
 
-  if (!userId) {
-    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-  }
+export async function GET() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  const { data, error } = await supabase
-    .from("audits")
-    .select("*")
+  const db = supabaseAdmin();
+  if (!db) return NextResponse.json({ audits: [], configured: false });
+
+  const { data, error } = await db
+    .from(AUDITS_TABLE)
+    .select("id, input_text, result, bias_score, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
   if (error) {
-    console.error("Supabase error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Supabase select failed:", error.message);
+    return NextResponse.json({ error: "Couldn't load your history." }, { status: 500 });
   }
-
-  return NextResponse.json({ audits: data });
+  return NextResponse.json({ audits: data ?? [], configured: true });
 }
 
+export async function DELETE(req: Request) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
+
+  const db = supabaseAdmin();
+  if (!db) return NextResponse.json({ error: "History isn't configured." }, { status: 503 });
+
+  const { error } = await db.from(AUDITS_TABLE).delete().eq("id", id).eq("user_id", userId);
+  if (error) {
+    console.error("Supabase delete failed:", error.message);
+    return NextResponse.json({ error: "Couldn't delete that scan." }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
+}
